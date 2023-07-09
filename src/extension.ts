@@ -27,6 +27,31 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() { }
 
 async function runCopyPasteCommand() {
+	const refactor = refactors.length > 0 ? await askFromExistingRefactors() : await askForNewRefactor();
+	await applyRefactor(refactor);
+}
+
+async function askFromExistingRefactors() {
+	const items: vscode.QuickPickItem[] = [
+		...refactors.map((refactor, index) => ({
+			description: index.toString(),
+			label: refactor.pairs.map(pair => `${pair.source} -> ${pair.replacement}`).join(','),
+
+		})),
+		{ label: 'create new', description: 'new' }
+	];
+
+	const result = await vscode.window.showQuickPick(items);
+	if (result?.description === 'new') {
+		return askForNewRefactor();
+	} else if (result?.description) {
+		return refactors[parseInt(result.description)];
+	} else {
+		throw new Error(`impossible state`);
+	}
+}
+
+async function askForNewRefactor() {
 	const input = await vscode.window.showInputBox({
 		placeHolder: "Search query",
 		prompt: "Run replacements pairs",
@@ -36,7 +61,7 @@ async function runCopyPasteCommand() {
 	const refactor = parseInput(input || '');
 	refactors.push(refactor);
 
-	await applyRefactor(refactor);
+	return refactor;
 }
 
 async function applyRefactor(refactor: Refactor) {
