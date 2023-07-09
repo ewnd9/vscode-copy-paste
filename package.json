@@ -15,9 +15,17 @@
     "commands": [
       {
         "command": "copy-paste.copyPaste",
-        "title": "Copy Paste"
+        "title": "Copy-Paste"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "copy-paste.copyPaste",
+          "group": "7_modification"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",
