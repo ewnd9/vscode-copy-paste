@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "copy-paste.helloWorld",
-        "title": "Hello World"
+        "command": "copy-paste.copyPaste",
+        "title": "Copy Paste"
       }
     ]
   },

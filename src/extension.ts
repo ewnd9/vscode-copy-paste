@@ -1,26 +1,76 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+interface RefactorPair {
+	source: string;
+	replacement: string;
+}
+
+interface Refactor {
+	pairs: RefactorPair[];
+}
+
+const refactors: Refactor[] = [];
+
 export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "copy-paste" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('copy-paste.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from copy-paste!');
+	const disposable = vscode.commands.registerCommand('copy-paste.copyPaste', async () => {
+		try {
+			await runCopyPasteCommand();
+		} catch (err) {
+			console.error(err);
+			vscode.window.showErrorMessage((err as Error).message);
+		}
 	});
 
 	context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
+
+async function runCopyPasteCommand() {
+	const input = await vscode.window.showInputBox({
+		placeHolder: "Search query",
+		prompt: "Run replacements pairs",
+		value: 'ge'
+	});
+
+	const refactor = parseInput(input || '');
+	refactors.push(refactor);
+
+	await applyRefactor(refactor);
+}
+
+async function applyRefactor(refactor: Refactor) {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		throw new Error(`editor is empty`);
+	}
+
+	const selection = editor.selection;
+	if (selection && !selection.isEmpty) {
+		const selectionRange = new vscode.Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
+
+		const highlighted = editor.document.getText(selectionRange);
+		const newText = highlighted.replace(new RegExp(refactor.pairs[0].source, 'g'), refactor.pairs[0].replacement);
+
+		await editor.edit(editBuilder => {
+			editBuilder.replace(selectionRange, newText);
+		});
+	}
+}
+
+function parseInput(input: string) {
+	const chunks = input.split(' ');
+	if (chunks.length === 0 || chunks.length % 2 !== 0) {
+		throw new Error(`can't parse "${input}"`);
+	}
+
+	const refactor: Refactor = { pairs: [] }
+	for (let i = 0; i < chunks.length; i += 2) {
+		refactor.pairs.push({
+			source: chunks[i],
+			replacement: chunks[i + 1],
+		});
+	}
+
+	return refactor;
+}
